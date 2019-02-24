@@ -9,8 +9,8 @@ $ docker run --name express_food -e MYSQL_ROOT_PASSWORD=my-secret-pw -d mysql:la
 
 ### load schema
 
-# navigate to the project root
-$ cd [project root]
+# navigate to directory where the repo is cloned
+$ cd [project directory]
 
 # make SQL file available to the container
 $ docker cp ./schema.sql express_food:/
@@ -81,10 +81,10 @@ Load sample data:
 ```
 ### Load sample data
 # make SQL file available to the container
-$ docker cp ./sample_data.sql express_food:/
+$ docker cp ./express_food_data.sql express_food:/
 
 # run SQL file within container
-$ docker exec express_food /bin/sh -c 'exec mysql  -uroot -p"my-secret-pw" </sample_data.sql'
+$ docker exec express_food /bin/sh -c 'exec mysql  -uroot -p"my-secret-pw" </express_food_data.sql'
 ...
 sleep(2)
 0
