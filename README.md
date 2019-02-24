@@ -118,5 +118,6 @@ mysql> SELECT * from client;
 
 Included usescases can be now run to assess the schema.
 
-
-![UML Diagram](ExpressFood-2.png)
+[Read brief](https://s3.amazonaws.com/quod.erat.demonstrandum/portfolio/img/project5.pdf)
+[UML Diagram](ExpressFood-2.png)
+[Project web page](https://www.irin.ca/projects/9)
