@@ -82,7 +82,7 @@ client as c ON o.client_id = c.id
 LEFT JOIN
 location_info AS li ON li.id = o.location_info_id
 LEFT JOIN
-billing_info AS bi
+billing_info AS bi ON bi.client_id = c.id
 WHERE c.id=1;
 
 
