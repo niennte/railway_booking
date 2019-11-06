@@ -93,43 +93,37 @@ Load sample data:
 ```
 ### Load sample data
 # make SQL file available to the container
-$ docker cp ./express_food_data.sql express_food:/
+$ docker cp ./express_food_data.sql railway:/
 
 # run SQL file within container
-$ docker exec express_food /bin/sh -c 'exec mysql  -uroot -p"my-secret-pw" </express_food_data.sql'
-...
-sleep(2)
-0
-sleep(2)
-0
-...
-
-## note: - sleep() is used to generate meaningful time-stamped status tables data
+$ docker exec railway /bin/sh -c 'exec mysql  -uroot -p"my-secret-pw" </sample_data.sql'
 ```
 
-Verify data is loaded
+Verify data is loaded:
 ```
 ### run client
-docker run -it --link express_food:mysql --rm mysql sh -c 'exec mysql -h"$MYSQL_PORT_3306_TCP_ADDR" -P"$MYSQL_PORT_3306_TCP_PORT" -uroot -p"$MYSQL_ENV_MYSQL_ROOT_PASSWORD"'
+docker run -it --link railway:mysql --rm mysql sh -c 'exec mysql -h"$MYSQL_PORT_3306_TCP_ADDR" -P"$MYSQL_PORT_3306_TCP_PORT" -uroot -p"$MYSQL_ENV_MYSQL_ROOT_PASSWORD"'
 
-mysql> use express_food;
+mysql> use railway;
 ...
 Database changed
 
 
-mysql> SELECT * from client;
-+----+---------------+----------------------------+-------------------+
-| id | name          | email_address              | cell_phone_number |
-+----+---------------+----------------------------+-------------------+
-|  1 | Bilbo Baggins | bilbo.baggins@hobiton.com  | 111-1111          |
-|  2 | Frodo Baggins | frodo.baggins@hobbiton.com | 333-3333          |
-|  3 | Sam Gamgee    | sam.gamgee@hobbiton.com    | 222-2222          |
-+----+---------------+----------------------------+-------------------+
-3 rows in set (0.00 sec)
+mysql> select * from seat;
++----+--------+--------+-------------------+
+| id | car_id | type   | booking_reference |
++----+--------+--------+-------------------+
+|  1 |      1 | aisle  | #1                |
+|  2 |      1 | window | #2                |
+|  3 |      2 | aisle  | #1                |
+|  4 |      2 | window | #2                |
+|  5 |      3 | aisle  | #1                |
+|  6 |      3 | window | #1                |
+|  7 |      4 | aisle  | #1                |
+|  8 |      4 | window | #2                |
++----+--------+--------+-------------------+
+8 rows in set (0.00 sec)
+
+
 ```
 
-Included usescases can be now run to assess the schema.
-
-[Read brief](https://s3.amazonaws.com/quod.erat.demonstrandum/portfolio/img/project5.pdf)
-[UML Diagram](ExpressFood-2.png)
-[Project web page](https://www.irin.ca/projects/9)
