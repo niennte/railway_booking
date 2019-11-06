@@ -1,151 +1,145 @@
-DROP DATABSE express_food;
+DROP DATABASE IF EXISTS railway;
 
 
-CREATE DATABASE express_food CHARACTER SET utf8 COLLATE utf8_general_ci;
-USE express_food;
+CREATE DATABASE railway CHARACTER SET utf8 COLLATE utf8_general_ci;
+USE railway;
 
--- use strong constraints
+-- Use strong constraints
 SET default_storage_engine=InnoDB;
 
 
 
--- Client and related info
+-- Physical objects rail data
 
-CREATE TABLE `client` (
+CREATE TABLE `train` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  `name` varchar(25) NOT NULL,
-  `email_address` varchar(255) NOT NULL UNIQUE KEY,
-  `cell_phone_number` varchar(25) NOT NULL
+  `name_or_number` varchar(25) NOT NULL UNIQUE KEY,
+  `description` varchar(255) NOT NULL
 );
 
-CREATE TABLE `location_info` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT UNIQUE KEY,
-  `client_id` int(10) unsigned NOT NULL,
-  `street_address` varchar(255) NOT NULL,
-  `phone_number` varchar(25),
-  `delivery_instructions` varchar(255), -- e.g., buzz code
-  PRIMARY KEY `client_address` (`client_id`,`street_address`),
-  FOREIGN KEY (client_id)
-    REFERENCES client(id)
-    ON DELETE CASCADE -- makes no sense in absence of client
-    -- so remove them
-);
-
-CREATE TABLE `billing_info` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT UNIQUE KEY,
-  `client_id` int(10) unsigned NOT NULL,
-  `payment_method` ENUM('cash', 'credit card') NOT NULL,
-  `payment_info` VARCHAR(255),
-  PRIMARY KEY `client_payment_method` (`client_id`,`payment_method`),
-  FOREIGN KEY (client_id)
-    REFERENCES client(id)
-    ON DELETE CASCADE -- makes no sense in absence of client
-    -- so remove them
-);
-
-
--- Order and related info
-
-CREATE TABLE `order` (
+CREATE TABLE `car` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  `client_id` int(10) unsigned NOT NULL,
-  `billing_info_id` int(10) unsigned NOT NULL,
-  `location_info_id`int(10) unsigned NOT NULL,
-  FOREIGN KEY (client_id)
-    REFERENCES client(id)
-    ON DELETE RESTRICT, -- prevent deletion of clients who have orders on record
-  FOREIGN KEY (billing_info_id)
-    REFERENCES billing_info(id)
-    ON DELETE RESTRICT,
-  FOREIGN KEY (location_info_id)
-    REFERENCES location_info(id)
-    ON DELETE RESTRICT
+  `train_id` int(10) unsigned,
+  `class` ENUM('first', 'second', 'third') NOT NULL,
+  `booking_reference` varchar(25),
+  FOREIGN KEY (train_id)
+    REFERENCES train(id)
+    ON UPDATE CASCADE
+    -- car can exist without a train
+    -- but should propagate change in train
+);
+
+CREATE TABLE `seat` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `car_id` int(10) unsigned NOT NULL,
+  `type` ENUM('aisle', 'window') NOT NULL,
+  `booking_reference` VARCHAR(25),
+  FOREIGN KEY (car_id)
+    REFERENCES car(id)
+    ON DELETE CASCADE
+    -- seat can't exist without a car
 );
 
 
-CREATE TABLE `order_status` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT UNIQUE KEY,
-  `order_id` int(10) unsigned NOT NULL,
-  `status` ENUM('open', 'complete', 'cancelled') NOT NULL,
-  `time` timestamp(6) NOT NULL, -- add microseconds for the demo purpose
-  `reason` varchar(255),
-  PRIMARY KEY `order_status_snapshot` (`order_id`,`status`, `time`),
-  FOREIGN KEY `order_status_order_id` (order_id) 
-    REFERENCES `order`(id)
-    ON DELETE CASCADE -- remove snapshots for deleted orders
-);
-
-
-
-CREATE TABLE `dish` (
+-- Data related to passengers
+CREATE TABLE `passenger` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `name` varchar(255) NOT NULL,
-  `type` ENUM('main dish', 'desert') NOT NULL
+  `info` varchar(255) NOT NULL
 );
 
 
-CREATE TABLE `order_detail` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT UNIQUE KEY,
-  `order_id` int(10) unsigned NOT NULL,
-  `dish_id` int(10) unsigned NOT NULL,
-  `quantity` int(10) unsigned NOT NULL DEFAULT 1, 
-  PRIMARY KEY `order_item` (`order_id`,`dish_id`),
-  FOREIGN KEY (order_id)
-    REFERENCES `order`(id)
-    ON DELETE CASCADE, -- remove details for deleted or archived orders
-  FOREIGN KEY (dish_id)
-    REFERENCES dish(id)
-    ON DELETE RESTRICT 
-    -- prevent deletion of dishes with orders on record
-    -- (order needs to be deleted first)
-);
+-- Data related to rail movement in space
 
-
-CREATE TABLE `menu` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT UNIQUE KEY,
-  `dish_id` int(10) unsigned  NOT NULL,
-  `date_available` date NOT NULL, 
-  PRIMARY KEY `dish_availability` (`dish_id`,`date_available`),
-  FOREIGN KEY (dish_id)
-    REFERENCES dish(id)
-    ON DELETE CASCADE -- remove menu records for deleted dishes
-);
-
-
--- Delivery people
-
-CREATE TABLE `courier` (
+CREATE TABLE `station` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  `name` varchar(25) NOT NULL,
-  `email_address` varchar(255) NOT NULL UNIQUE KEY,
-  `phone_number` varchar(25) NOT NULL
+  `name_code` varchar(25) NOT NULL UNIQUE KEY,
+  `location` varchar(255) NOT NULL
 );
 
--- Delivery 
 
-CREATE TABLE `delivery` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT UNIQUE KEY,
-  `order_id` int(10) unsigned NOT NULL,
-  `courier_id` int(10) unsigned NOT NULL,
-  PRIMARY KEY `delivery_assignment` (`courier_id`,`order_id`),
-  FOREIGN KEY (order_id)
-    REFERENCES `order`(id)
-    ON DELETE CASCADE, -- orders might be deleted or archived
-  FOREIGN KEY (courier_id)
-    REFERENCES courier(id)
-    ON DELETE RESTRICT -- courriers for existing deliveries may not be deleted
+CREATE TABLE `route` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `name_or_number` varchar(255) NOT NULL UNIQUE KEY,
+  `departure_station_id` int(10) unsigned NOT NULL,
+  `arrival_station_id` int(10) unsigned NOT NULL,
+  FOREIGN KEY (departure_station_id)
+    REFERENCES station(id)
+    ON DELETE RESTRICT -- can't delete a station assigned as route departure
+    ON UPDATE CASCADE, -- should propagate change in station
+  FOREIGN KEY (arrival_station_id)
+    REFERENCES station(id)
+    ON DELETE RESTRICT -- can't delete a station assigned as route destination
+    ON UPDATE CASCADE -- should propagate change in station
 );
 
-CREATE TABLE `delivery_status` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT UNIQUE KEY,
-  `delivery_id` int(10) unsigned NOT NULL,
-  `status` ENUM('open', 'complete', 'cancelled') NOT NULL,
-  `time` timestamp(6) NOT NULL, -- add microseconds for the demo purpose
-  `reason` varchar(255),
-  PRIMARY KEY `delivery_status_snapshot` (`delivery_id`,`status`,`time`),
-  FOREIGN KEY (delivery_id) 
-    REFERENCES delivery(id)
-    ON DELETE CASCADE -- remove status history for deleted delivery assignments
+
+
+-- Data related to rail objects and users movement in time
+
+
+-- Schedule records
+-- Note: this table should be regularly maintained to have no outdated records
+/*
+A collection all of points in time related to trains movement through a station,
+with type of event (either departure or arrival);
+- a full timetable by train, by route, by station arrivals and departures can be derived;
+- base for deriving seats availability
+*/
+CREATE TABLE `schedule` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `train_id` int(10) unsigned NOT NULL,
+  `route_id` int(10) unsigned NOT NULL,
+  `station_id` int(10) unsigned NOT NULL,
+  `date_time` TIMESTAMP NOT NULL,
+  `type` ENUM('departure', 'arrival') NOT NULL,
+  FOREIGN KEY (train_id)
+    REFERENCES train(id)
+    ON DELETE RESTRICT -- can't delete a train assigned to active schedule
+    ON UPDATE CASCADE, -- should propagate change in train
+  FOREIGN KEY (route_id)
+    REFERENCES route(id)
+    ON DELETE RESTRICT -- can't delete a route that is scheduled
+    ON UPDATE CASCADE, -- should propagate change in route
+  FOREIGN KEY (station_id)
+    REFERENCES station(id)
+    ON DELETE RESTRICT -- can't delete a station with records in active schedule
+    ON UPDATE CASCADE -- should propagate change in schedule
 );
 
+
+-- Booking records
+-- Note: this table should be archived and purged as each travel completes
+/*
+A collection of travel segments between adjacent stations
+listed per seat assigned to a passenger;
+- full ticketing info can be derived,
+- absence of record represents the seat is free for the segment,
+- datetime for the same booking is shared between all segments;
+- also, takes part in deriving seat availability
+*/
+CREATE TABLE `booking` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `departure_schedule_id` int(10) unsigned NOT NULL,
+  `arrival_schedule_id` int(10) unsigned NOT NULL,
+  `seat_id` int(10) unsigned NOT NULL,
+  `passenger_id` int(10) unsigned NOT NULL,
+  `date_time` TIMESTAMP NOT NULL,
+  FOREIGN KEY (departure_schedule_id)
+    REFERENCES schedule(id)
+    ON DELETE RESTRICT -- can't delete a scheduled departure part of active booking
+    ON UPDATE CASCADE, -- should propagate change in scheduled departure
+  FOREIGN KEY (arrival_schedule_id)
+    REFERENCES schedule(id)
+    ON DELETE RESTRICT -- can't delete a scheduled arrival part of active booking
+    ON UPDATE CASCADE, -- should propagate change in scheduled arrival
+  FOREIGN KEY (seat_id)
+    REFERENCES seat(id)
+    ON DELETE RESTRICT -- can't delete a seat that is booked
+    ON UPDATE CASCADE, -- should propagate change in seat
+  FOREIGN KEY (passenger_id)
+    REFERENCES passenger(id)
+    ON DELETE RESTRICT -- can't delete a passenger with active booking
+    ON UPDATE CASCADE -- should propagate change in seat
+);
 
