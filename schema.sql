@@ -13,7 +13,7 @@ SET default_storage_engine=InnoDB;
 
 CREATE TABLE `train` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  `name_or_number` varchar(25) NOT NULL UNIQUE KEY,
+  `name_or_number` varchar(50) NOT NULL UNIQUE KEY,
   `description` varchar(255) NOT NULL
 );
 
@@ -21,7 +21,8 @@ CREATE TABLE `car` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `train_id` int(10) unsigned,
   `class` ENUM('first', 'second', 'third') NOT NULL,
-  `booking_reference` varchar(25),
+  `name_or_number` varchar(50),
+  UNIQUE KEY `car_booking_reference` (`name_or_number`,`train_id`),
   FOREIGN KEY (train_id)
     REFERENCES train(id)
     ON UPDATE CASCADE
@@ -32,8 +33,9 @@ CREATE TABLE `car` (
 CREATE TABLE `seat` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
   `car_id` int(10) unsigned NOT NULL,
-  `type` ENUM('aisle', 'window') NOT NULL,
-  `booking_reference` VARCHAR(25),
+  `type` ENUM('aisle', 'window', 'other') NOT NULL,
+  `name_or_number` VARCHAR(50),
+  UNIQUE KEY `seat_booking_reference` (`name_or_number`,`car_id`),
   FOREIGN KEY (car_id)
     REFERENCES car(id)
     ON DELETE CASCADE
@@ -44,6 +46,7 @@ CREATE TABLE `seat` (
 -- Data related to passengers
 CREATE TABLE `passenger` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `email` varchar(255) NOT NULL UNIQUE KEY,
   `name` varchar(255) NOT NULL,
   `info` varchar(255) NOT NULL
 );
@@ -53,7 +56,7 @@ CREATE TABLE `passenger` (
 
 CREATE TABLE `station` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  `name_code` varchar(25) NOT NULL UNIQUE KEY,
+  `name_code` varchar(50) NOT NULL UNIQUE KEY,
   `location` varchar(255) NOT NULL
 );
 
