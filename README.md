@@ -109,21 +109,169 @@ mysql> use railway;
 Database changed
 
 
-mysql> select * from seat;
-+----+--------+--------+-------------------+
-| id | car_id | type   | booking_reference |
-+----+--------+--------+-------------------+
-|  1 |      1 | aisle  | #1                |
-|  2 |      1 | window | #2                |
-|  3 |      2 | aisle  | #1                |
-|  4 |      2 | window | #2                |
-|  5 |      3 | aisle  | #1                |
-|  6 |      3 | window | #1                |
-|  7 |      4 | aisle  | #1                |
-|  8 |      4 | window | #2                |
-+----+--------+--------+-------------------+
-8 rows in set (0.00 sec)
+mysql> -- Let's view all available seats grouped by class
+
+mysql> SELECT train.name_or_number as train, class, count(*) AS num_seats, train.description FROM seat, car, train WHERE seat.car_id = car.id AND car.train_id = train.id GROUP BY train_id, class;
++----------------+--------+-----------+-------------------------------------------+
+| train | class  | num_seats | description+----------------+--------+-----------+-------------------------------------------+
+| ABC-25         | second |         2 | Москва-Киев                     |
+| ABC-25         | first  |         2 | Москва-Киев                     |
+| DEF-60         | second |         2 | Москва-Снкт.-Петербург |
+| DEF-60         | first  |         2 | Москва-Снкт.-Петербург |
++----------------+--------+-----------+-------------------------------------------+
+4 rows in set (0.00 sec)
 
 
+mysql> -- A simple table:
+
+mysql> SELECT train.name_or_number AS train, route.name_or_number as route, station.name_code AS station, station.location as location, date_time, type from schedule, train, station, route WHERE schedule.train_id = train.id AND schedule.station_id = station.id AND schedule.route_id = route.id ORDER BY train;
++--------+---------------------------------+---------+-------------------------------+---------------------+-----------+
+| train  | route                           | station | location                      | date_time           | type      |
++--------+---------------------------------+---------+-------------------------------+---------------------+-----------+
+| DEF-60 | Москва-Петербург | MSC     | Москва                  | 2019-11-08 11:49:57 | departure |
+| DEF-60 | Москва-Петербург | BLH     | Балагое                | 2019-11-08 12:21:57 | arrival   |
+| DEF-60 | Москва-Петербург | BLH     | Балагое                | 2019-11-08 12:57:57 | departure |
+| DEF-60 | Москва-Петербург | PTB     | Санкт-Петербург | 2019-11-08 13:29:57 | arrival   |
++--------+---------------------------------+---------+-------------------------------+---------------------+-----------+
+4 rows in set (0.00 sec)
+
+
+
+
+mysql> -- There is one booking made for MSC - BLH.
+mysql> -- A ticket view for the booking:
+
+mysql> SELECT 
+passenger.name,
+station_d.name_code as departure_station,
+schedule_d.date_time as departure_time,
+station_a.name_code as arrival_station,
+schedule_a.date_time as arrival_time,
+seat.name_or_number as seat,
+seat.type as seat_type,
+car.name_or_number as car,
+car.class as car_class,
+train.name_or_number as train
+from
+booking
+LEFT JOIN
+passenger
+ON
+passenger.id = booking.passenger_id 
+LEFT JOIN schedule as schedule_d ON booking.departure_schedule_id = schedule_d.id
+LEFT JOIN station as station_d ON schedule_d.station_id = station_d.id
+LEFT JOIN schedule as schedule_a ON booking.arrival_schedule_id = schedule_a.id
+LEFT JOIN station as station_a ON schedule_a.station_id = station_a.id
+LEFT JOIN seat ON booking.seat_id = seat.id
+LEFT JOIN car ON seat.car_id = car.id
+LEFT JOIN train ON car.train_id = train.id
+WHERE
+passenger.id = 1;
++-------------------------------+-------------------+---------------------+-----------------+---------------------+------+-----------+------+-----------+--------+
+| name                          | departure_station | departure_time      | arrival_station | arrival_time        | seat | seat_type | car  | car_class | train  |
++-------------------------------+-------------------+---------------------+-----------------+---------------------+------+-----------+------+-----------+--------+
+| Старик Хоттабыч | MSC               | 2019-11-08 12:22:38 | BLH             | 2019-11-08 14:22:38 | #1   | aisle     | #2   | second    | DEF-60 |
++-------------------------------+-------------------+---------------------+-----------------+---------------------+------+-----------+------+-----------+--------+
+1 row in set (0.00 sec)
+
+
+
+mysql> -- available seats:
+mysql> -- observe available tickets for second class train DEF-60 = 1
+mysql> SELECT 
+car.class,
+count(seat.id) as num_seats,
+train.name_or_number as train,
+route.name_or_number as route
+FROM
+schedule as schedule_d
+LEFT JOIN train ON schedule_d.train_id = train.id 
+LEFT JOIN route ON schedule_d.route_id = route.id 
+LEFT JOIN schedule as schedule_a ON schedule_a.route_id = route.id
+LEFT JOIN car ON car.train_id = train.id
+LEFT JOIN seat ON seat.car_id = car.id
+WHERE 
+schedule_d.type = 'departure'
+AND
+schedule_d.station_id = 1
+AND
+schedule_a.type = 'arrival'
+AND
+schedule_a.station_id = route.arrival_station_id
+AND
+schedule_d.date_time > NOW() + INTERVAL 1 DAY - INTERVAL 5 HOUR
+AND seat.id NOT IN (
+SELECT seat_id from 
+booking 
+LEFT JOIN schedule as sd ON booking.departure_schedule_id = sd.id
+LEFT JOIN schedule as sa ON booking.arrival_schedule_id = sa.id
+WHERE 
+sd.date_time >= schedule_d.date_time
+AND
+sa.date_time <= schedule_a.date_time
+)
+GROUP BY car.class, train.name_or_number, route.name_or_number
+;
++--------+-----------+--------+---------------------------------+
+| class  | num_seats | train  | route                           |
++--------+-----------+--------+---------------------------------+
+| first  |         2 | DEF-60 | Москва-Петербург |
+| second |         1 | DEF-60 | Москва-Петербург |
+| first  |         2 | ABC-25 | Москва-Киев           |
+| second |         2 | ABC-25 | Москва-Киев           |
++--------+-----------+--------+---------------------------------+
+4 rows in set (0.01 sec)
+
+mysql> -- let's remove the booking
+mysql> DELETE from booking;
+Query OK, 1 row affected (0.01 sec)
+
+mysql> -- observe:
+mysql> -- available tickets for second class train DEF-60 is now 2 
+mysql> SELECT 
+car.class,
+count(seat.id) as num_seats,
+train.name_or_number as train,
+route.name_or_number as route
+FROM
+schedule as schedule_d
+LEFT JOIN train ON schedule_d.train_id = train.id 
+LEFT JOIN route ON schedule_d.route_id = route.id 
+LEFT JOIN schedule as schedule_a ON schedule_a.route_id = route.id
+LEFT JOIN car ON car.train_id = train.id
+LEFT JOIN seat ON seat.car_id = car.id
+WHERE 
+schedule_d.type = 'departure'
+AND
+schedule_d.station_id = 5
+AND
+schedule_a.type = 'arrival'
+AND
+schedule_a.station_id = route.arrival_Station_id
+AND
+schedule_d.date_time > NOW() + INTERVAL 1 DAY - INTERVAL 5 HOUR
+AND seat.id NOT IN (
+SELECT seat_id from 
+booking 
+LEFT JOIN schedule as sd ON booking.departure_schedule_id = sd.id
+LEFT JOIN schedule as sa ON booking.arrival_schedule_id = sa.id
+WHERE 
+sd.date_time >= schedule_d.date_time
+AND
+sa.date_time <= schedule_a.date_time
+)
+GROUP BY car.class, train.name_or_number, route.name_or_number
+;
++--------+-----------+--------+---------------------------------+
+| class  | num_seats | train  | route                           |
++--------+-----------+--------+---------------------------------+
+| first  |         2 | DEF-60 | Москва-Петербург |
+| second |         2 | DEF-60 | Москва-Петербург |
+| first  |         2 | ABC-25 | Москва-Киев           |
+| second |         2 | ABC-25 | Москва-Киев           |
++--------+-----------+--------+---------------------------------+
+4 rows in set (0.01 sec)
+
+mysql> 
 ```
 
