@@ -5,6 +5,7 @@
 - read [design notes](NOTES.md)
 - download [schema UML in .pdf format](https://www.lucidchart.com/publicSegments/view/36346eee-6206-4d7c-bdfd-1571105b9b20/image.pdf)
 
+![](https://s3.amazonaws.com/quod.erat.demonstrandum/portfolio/img/RailTicketing.jpeg)
 
 ##### Run locally:
 These instructions assume Docker is [installed](https://docs.docker.com/), the deamon/process is running an accessible to a CLI client, and is shown using Mac OS terminal.
@@ -60,8 +61,8 @@ mysql> show tables;
 | train             |
 +-------------------+
 
-mysql> show CREATE TABLE billing_info;
-| Table   | Create Table                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+mysql> show CREATE TABLE booking;
+| Table   | Create Table                                                          |
 +---------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 | booking | CREATE TABLE `booking` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -93,7 +94,7 @@ Load sample data:
 ```
 ### Load sample data
 # make SQL file available to the container
-$ docker cp ./express_food_data.sql railway:/
+$ docker cp ./sample_data.sql railway:/
 
 # run SQL file within container
 $ docker exec railway /bin/sh -c 'exec mysql  -uroot -p"my-secret-pw" </sample_data.sql'
